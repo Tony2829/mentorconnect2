@@ -10,7 +10,6 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  String? _role; // Role will be determined after login
   bool _isLoading = false;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -26,21 +25,25 @@ class _LoginPageState extends State<LoginPage> {
         password: _passwordController.text.trim(),
       );
 
-      // Fetch user role from Firestore
-      DocumentSnapshot userDoc = await _firestore
-          .collection('users')
-          .doc(userCredential.user?.uid)
-          .get();
+      String userId = userCredential.user?.uid ?? '';
 
-      if (userDoc.exists) {
-        var userData = userDoc.data() as Map<String, dynamic>;
-        _role = userData['role'];
+      // Check if the user is a mentor
+      DocumentSnapshot mentorDoc = await _firestore.collection('mentors').doc(userId).get();
 
-        // Navigate based on role
-        if (_role == 'mentor') {
-          Navigator.pushReplacementNamed(context, '/mentor_home');
-        } else {
+      if (mentorDoc.exists) {
+        // Mentor found, redirect to mentor home
+        Navigator.pushReplacementNamed(context, '/mentor_home');
+      } else {
+        // Check if the user is a mentee
+        DocumentSnapshot menteeDoc = await _firestore.collection('mentees').doc(userId).get();
+
+        if (menteeDoc.exists) {
+          // Mentee found, redirect to mentee home
           Navigator.pushReplacementNamed(context, '/mentee_home');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('User not found in either role.'),
+          ));
         }
       }
     } on FirebaseAuthException catch (e) {
@@ -59,7 +62,7 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Login'),
-        backgroundColor: Colors.deepPurple, // AppBar color
+        backgroundColor: Colors.deepPurple,
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -72,15 +75,15 @@ class _LoginPageState extends State<LoginPage> {
         padding: EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center, // Center the column
-            mainAxisAlignment: MainAxisAlignment.center, // Center vertically
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 'Welcome Back',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple, // Welcome text color
+                  color: Colors.deepPurple,
                 ),
               ),
               SizedBox(height: 20),
@@ -119,7 +122,7 @@ class _LoginPageState extends State<LoginPage> {
                   : ElevatedButton(
                       onPressed: _login,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurple, // Button color
+                        backgroundColor: Colors.deepPurple,
                         padding: EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
@@ -136,7 +139,7 @@ class _LoginPageState extends State<LoginPage> {
               SizedBox(height: 20),
               InkWell(
                 onTap: () {
-                  Navigator.pushNamed(context, '/signup'); // Navigate to SignUpPage
+                  Navigator.pushNamed(context, '/signup');
                 },
                 child: RichText(
                   text: TextSpan(

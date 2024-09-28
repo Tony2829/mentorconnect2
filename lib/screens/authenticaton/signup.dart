@@ -16,6 +16,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _rollNumberController = TextEditingController(); // Added roll number controller
 
   // Role selection
   String? _role;
@@ -44,18 +45,20 @@ class _SignUpPageState extends State<SignUpPage> {
         password: _passwordController.text.trim(),
       );
 
-      // Store user details in Firestore
-      await _firestore.collection('users').doc(userCredential.user?.uid).set({
+      // Store user details in Firestore based on role
+      Map<String, dynamic> userData = {
         'username': _usernameController.text.trim(),
         'email': _emailController.text.trim(),
-        'role': _role ?? 'mentee', // Default role as mentee if not selected
-      });
+        'rollNumber': _rollNumberController.text.trim(), // Added roll number field
+        'role': _role ?? 'mentee',
+      };
 
-      // Navigate to home page based on the selected role
       if (_role == 'mentor') {
-        Navigator.pushReplacementNamed(context, '/mentor_home'); // Update to your route for mentor home
+        await _firestore.collection('mentors').doc(userCredential.user?.uid).set(userData);
+        Navigator.pushReplacementNamed(context, '/mentor_home');
       } else {
-        Navigator.pushReplacementNamed(context, '/mentee_home'); // Update to your route for mentee home
+        await _firestore.collection('mentees').doc(userCredential.user?.uid).set(userData);
+        Navigator.pushReplacementNamed(context, '/mentee_home');
       }
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -73,7 +76,7 @@ class _SignUpPageState extends State<SignUpPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Sign Up'),
-        backgroundColor: Colors.teal, // AppBar color
+        backgroundColor: Colors.teal,
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
@@ -82,7 +85,6 @@ class _SignUpPageState extends State<SignUpPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Title
                 Text(
                   'Create an Account',
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
@@ -96,6 +98,17 @@ class _SignUpPageState extends State<SignUpPage> {
                     labelText: 'Username',
                     border: OutlineInputBorder(),
                   ),
+                ),
+                SizedBox(height: 16),
+
+                // Roll Number Input (Added new field)
+                TextField(
+                  controller: _rollNumberController,
+                  decoration: InputDecoration(
+                    labelText: 'Roll Number',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number, // Roll number should be numeric
                 ),
                 SizedBox(height: 16),
 
@@ -160,8 +173,9 @@ class _SignUpPageState extends State<SignUpPage> {
                         onPressed: _signUp,
                         child: Text('Sign Up'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal, // Button color
-                          padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                          backgroundColor: Colors.teal,
+                          padding: EdgeInsets.symmetric(vertical: 16.0),
+                          textStyle: TextStyle(fontSize: 18),
                         ),
                       ),
 
@@ -170,7 +184,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 // Link to Sign In Page
                 GestureDetector(
                   onTap: () {
-                    Navigator.pushNamed(context, '/signin'); // Navigate to SignInPage
+                    Navigator.pushNamed(context, '/signin');
                   },
                   child: Text(
                     'Already have an account? Login',
